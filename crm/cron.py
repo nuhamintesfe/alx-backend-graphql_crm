@@ -2,6 +2,8 @@ from datetime import datetime
 import os
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
+import requests
+import json
 
 def log_crm_heartbeat():
     """
@@ -36,3 +38,30 @@ def log_crm_heartbeat():
     # Append heartbeat message to log file
     with open('/tmp/crm_heartbeat_log.txt', 'a') as f:
         f.write(log_message) 
+def update_low_stock():
+    query = '''
+    mutation {
+      updateLowStockProducts {
+        success
+        updatedProducts {
+          id
+          name
+          stock
+        }
+      }
+    }
+    '''
+
+    try:
+        response = requests.post(
+            "http://localhost:8000/graphql/",
+            json={"query": query},
+            headers={"Content-Type": "application/json"}
+        )
+        data = response.json()
+        with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_file.write(f"{timestamp} - {json.dumps(data)}\n")
+    except Exception as e:
+        with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
+            log_file.write(f"ERROR: {e}\n")
