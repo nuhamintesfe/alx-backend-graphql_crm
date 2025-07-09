@@ -1,19 +1,22 @@
 #!/bin/bash
+# Script to delete inactive customers with no orders in the past year
 
-# Get the directory where the script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+# Change to Django project root (cwd = current working directory)
+cd /absolute/path/to/your/alx-backend-graphql_crm || exit 1
 
-# Change to the project directory
-cd "$PROJECT_DIR"
+# Activate virtual environment if you have one (optional)
+# source venv/bin/activate
 
-# Set Python path to include the project directory
-export PYTHONPATH="${PROJECT_DIR}:${PYTHONPATH}"
+# Run Django shell command to delete customers
+count=$(python3 manage.py shell -c "
+from crm.models import Customer
+from django.utils import timezone
+from datetime import timedelta
 
-# If in test mode, use a fixed date
-if [ "$TEST_MODE" = "1" ]; then
-    DJANGO_SETTINGS_MODULE=alx_backend_graphql.settings python manage.py cleanup_inactive_customers --reference-date="2024-01-01"
-else
-    # Execute the cleanup command using Django's management command
-    DJANGO_SETTINGS_MODULE=alx_backend_graphql.settings python manage.py cleanup_inactive_customers
-fi 
+one_year_ago = timezone.now() - timedelta(days=365)
+deleted, _ = Customer.objects.filter(orders__isnull=True, created__lte=one_year_ago).delete()
+print(deleted)
+")
+
+# Log result
+echo \"\$(date '+%Y-%m-%d %H:%M:%S') Deleted \$count inactive customers\" >> /tmp/customer_cleanup_log.txt
