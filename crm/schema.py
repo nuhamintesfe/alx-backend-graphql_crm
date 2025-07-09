@@ -312,28 +312,3 @@ class OrderFilter(django_filters.FilterSet):
         fields = ['totalAmountGte', 'totalAmountLte', 'customerName', 'productId']
 
 schema = graphene.Schema(query=Query, mutation=Mutation) 
-class ProductType(graphene.ObjectType):
-    id = graphene.ID()
-    name = graphene.String()
-    stock = graphene.Int()
-
-class UpdateLowStockProducts(graphene.Mutation):
-    success = graphene.String()
-    updated_products = graphene.List(ProductType)
-
-    def mutate(self, info):
-        low_stock_products = Product.objects.filter(stock__lt=10)
-        updated_list = []
-
-        for product in low_stock_products:
-            product.stock += 10
-            product.save()
-            updated_list.append(product)
-
-        return UpdateLowStockProducts(
-            success="Stock updated successfully",
-            updated_products=updated_list
-        )
-
-class Mutation(graphene.ObjectType):
-    update_low_stock_products = UpdateLowStockProducts.Field()
